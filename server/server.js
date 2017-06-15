@@ -27,17 +27,13 @@ io.on('connection', (socket) => {
   //socket.broadcast.emit - send to all sockets but current
 
   socket.on('createMessage', (data, callback) => {
-    data.createdAt = util.getDate();
-    socket.broadcast.emit('newMessage', data);
+    io.emit('newMessage', util.generateMessage(data.from, data.text));
     callback();
-    //io.emit('newMessage', data);
   });
 
   socket.on('createLocationMessage', (data, callback) => {
-    data.createdAt = util.getDate();
-    socket.broadcast.emit('newLocationMessage', util.generateLocationMessage(data.from, data.lat, data.lng));
+    io.emit('newLocationMessage', util.generateLocationMessage(data.from, data.lat, data.lng));
     callback();
-    //io.emit('newMessage', data);
   });
 
   socket.on('disconnect', () => {
