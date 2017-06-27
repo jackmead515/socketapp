@@ -1,11 +1,30 @@
 var socket = io();
 
 socket.on('connect', function() {
-  console.log('Connected to server!');
+  var params = $.deparam(window.location.search);
+
+  socket.emit('join', params, function(err) {
+    if(err) {
+      alert(err);
+      window.location.href = '/';
+    } else {
+      console.log('No error.');
+    }
+  });
 });
 
 socket.on('disconnect', function() {
   console.log('Disconnected from server!');
+});
+
+socket.on('updateUserList', function(users) {
+  var ol = $('<ol></ol>');
+
+  users.forEach(function(user) {
+    ol.append($('<li></li>').text(user));
+  });
+
+  $('#users').html(ol);
 });
 
 socket.on('newMessage', function(data) {
@@ -24,6 +43,7 @@ socket.on('newMessage', function(data) {
   });
 
   $('#messages').append(html);
+  scrollToBottom();
 });
 
 socket.on('newLocationMessage', function(data) {
@@ -45,18 +65,30 @@ socket.on('newLocationMessage', function(data) {
   });
 
   $('#messages').append(html);
+  scrollToBottom();
 });
+
+function scrollToBottom() {
+  var messages = $('#messages');
+  var newMessage = messages.children('li:last-child');
+
+  var clientHeight = messages.prop('clientHeight');
+  var scrollTop = messages.prop('scrollTop');
+  var scrollHeight = messages.prop('scrollHeight');
+  var newMessageHeight = newMessage.innerHeight();
+  var lastMessageHeight = newMessage.prev().innerHeight();
+
+  if(scrollTop + clientHeight + newMessageHeight + lastMessageHeight >= scrollHeight) {
+    messages.scrollTop(scrollHeight);
+  }
+}
 
 var getFormatedTime = function(time)  {
     return moment(time).format('h:mm a');
 };
 
 function createNewMessage(text) {
-  var data = {
-    from: 'Jack',
-    text: text
-  };
-  socket.emit('createMessage', data, function() {
+  socket.emit('createMessage', {text: text}, function() {
     console.log("Message was recieved.");
   });
 }
@@ -79,7 +111,6 @@ locationButton.on('click', function(){
   navigator.geolocation.getCurrentPosition(function(position) {
       locationButton.removeAttr('disabled').text('Send Location');
     socket.emit('createLocationMessage', {
-      from: 'Jack',
       lat: position.coords.latitude,
       lng: position.coords.longitude
     }, function() {
